@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Airline Fleet Race 2005–2024</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #060810;
+    --surface: #0d1117;
+    --border: #1e2533;
+    --text: #e8eaf2;
+    --muted: #5a6278;
+    --accent: #f0c040;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 24px 48px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper { position: relative; z-index: 1; width: 100%; max-width: 860px; }
+
+  .header { margin-bottom: 32px; position: relative; }
+  .eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 6vw, 62px); letter-spacing: 2px; line-height: 1; color: #fff; }
+  .subtitle { margin-top: 10px; font-size: 13px; color: var(--muted); font-weight: 300; }
+
+  .year-bg {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 14vw, 140px);
+    color: rgba(255,255,255,0.045);
+    line-height: 1;
+    position: absolute;
+    right: 0;
+    top: -10px;
+    letter-spacing: 4px;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px 20px 0;
+    margin-bottom: 24px;
+    position: relative;
+    height: 510px;
+    overflow: hidden;
+  }
+
+  /* Each airline is one permanent absolutely-positioned row */
+  .bar-row {
+    position: absolute;
+    left: 0;
+    right: 56px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    /* transition set dynamically by JS to match speed */
+  }
+
+  .rank-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    width: 30px;
+    text-align: right;
+    padding-right: 8px;
+    flex-shrink: 0;
+  }
+
+  .airline-name {
+    font-size: 11.5px;
+    font-weight: 500;
+    width: 118px;
+    text-align: right;
+    padding-right: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 38px;
+    position: relative;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+    position: relative;
+    min-width: 0px;
+    /* transition set dynamically by JS */
+  }
+
+  .bar-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,.13), transparent);
+    pointer-events: none;
+  }
+
+  .val-label {
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    opacity: .85;
+    min-width: 48px;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 22px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  #playBtn { background: var(--accent); color: #000; border-color: var(--accent); }
+  #playBtn:hover { background: #f5cc55; }
+  #resetBtn { background: transparent; color: var(--muted); }
+  #resetBtn:hover { border-color: var(--text); color: var(--text); }
+
+  .speed-group { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .speed-label { font-size: 12px; color: var(--muted); }
+
+  select {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .scrubber-row { margin-top: 14px; display: flex; align-items: center; gap: 12px; }
+  .scrubber-label { font-size: 11px; color: var(--muted); width: 28px; flex-shrink: 0; }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .note { margin-top: 18px; font-size: 11px; color: var(--muted); line-height: 1.75; }
+  .note span { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="header">
+    <div class="eyebrow">Aviation Analytics</div>
+    <h1>The Fleet Race</h1>
+    <div class="subtitle">World's largest commercial airlines by active fleet size · 2005 – 2024</div>
+    <div class="year-bg" id="yearBg">2005</div>
+  </div>
+
+  <div class="chart-wrap" id="chartWrap"></div>
+
+  <div class="controls">
+    <button id="playBtn">▶ Play</button>
+    <button id="resetBtn">↺ Reset</button>
+    <div class="speed-group">
+      <span class="speed-label">Speed</span>
+      <select id="speedSelect">
+        <option value="1600">Slow</option>
+        <option value="1000" selected>Normal</option>
+        <option value="600">Fast</option>
+        <option value="300">⚡ Turbo</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="scrubber-row">
+    <span class="scrubber-label">Year</span>
+    <input type="range" id="yearSlider" min="0" max="19" value="0" step="1">
+  </div>
+
+  <div class="note">
+    Sources: ch-aviation, Wikipedia, OAG, planespotters.net · Fleet sizes reflect mainline active aircraft.<br>
+    <span>*</span> COVID-19 dip visible 2020–2021 &nbsp;·&nbsp;
+    <span>*</span> UA + Continental merger 2010 &nbsp;·&nbsp;
+    <span>*</span> AA + US Airways merger 2013
+  </div>
+
+</div>
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const AIRLINES = [
+  { id:'american',   name:'American',       flag:'🇺🇸', color:'#e63946',
+    d:{2005:700,2006:710,2007:720,2008:710,2009:640,2010:620,2011:615,2012:610,2013:950,2014:970,2015:950,2016:940,2017:950,2018:950,2019:960,2020:740,2021:810,2022:865,2023:950,2024:1006}},
+  { id:'delta',      name:'Delta',          flag:'🇺🇸', color:'#9b2335',
+    d:{2005:560,2006:542,2007:520,2008:500,2009:750,2010:755,2011:760,2012:755,2013:760,2014:770,2015:800,2016:835,2017:860,2018:890,2019:910,2020:700,2021:760,2022:870,2023:985,2024:1006}},
+  { id:'united',     name:'United',         flag:'🇺🇸', color:'#457b9d',
+    d:{2005:580,2006:572,2007:568,2008:555,2009:540,2010:720,2011:720,2012:715,2013:710,2014:710,2015:730,2016:740,2017:750,2018:770,2019:790,2020:630,2021:680,2022:770,2023:960,2024:1000}},
+  { id:'southwest',  name:'Southwest',      flag:'🇺🇸', color:'#f77f00',
+    d:{2005:445,2006:481,2007:520,2008:537,2009:537,2010:548,2011:550,2012:585,2013:650,2014:665,2015:704,2016:723,2017:750,2018:750,2019:752,2020:718,2021:730,2022:770,2023:817,2024:817}},
+  { id:'fedex',      name:'FedEx',          flag:'🇺🇸', color:'#8338ec',
+    d:{2005:270,2006:280,2007:290,2008:295,2009:290,2010:295,2011:300,2012:310,2013:335,2014:355,2015:370,2016:380,2017:400,2018:420,2019:465,2020:480,2021:510,2022:570,2023:685,2024:689}},
+  { id:'chinasouth', name:'China Southern', flag:'🇨🇳', color:'#06d6a0',
+    d:{2005:160,2006:190,2007:220,2008:240,2009:265,2010:294,2011:330,2012:380,2013:436,2014:488,2015:540,2016:572,2017:604,2018:640,2019:672,2020:590,2021:625,2022:660,2023:700,2024:740}},
+  { id:'ryanair',    name:'Ryanair',        flag:'🇮🇪', color:'#2ec4b6',
+    d:{2005:89,2006:103,2007:131,2008:163,2009:196,2010:232,2011:272,2012:294,2013:303,2014:298,2015:330,2016:349,2017:400,2018:440,2019:455,2020:348,2021:390,2022:453,2023:537,2024:600}},
+  { id:'lufthansa',  name:'Lufthansa',      flag:'🇩🇪', color:'#ffd166',
+    d:{2005:295,2006:305,2007:330,2008:345,2009:320,2010:340,2011:360,2012:370,2013:380,2014:390,2015:410,2016:420,2017:430,2018:445,2019:460,2020:340,2021:350,2022:380,2023:420,2024:445}},
+  { id:'turkish',    name:'Turkish',        flag:'🇹🇷', color:'#e9c46a',
+    d:{2005:62,2006:71,2007:85,2008:103,2009:126,2010:149,2011:175,2012:201,2013:224,2014:261,2015:280,2016:283,2017:320,2018:336,2019:343,2020:270,2021:298,2022:341,2023:389,2024:420}},
+  { id:'emirates',   name:'Emirates',       flag:'🇦🇪', color:'#ef233c',
+    d:{2005:86,2006:105,2007:122,2008:136,2009:142,2010:157,2011:169,2012:183,2013:197,2014:216,2015:237,2016:253,2017:262,2018:270,2019:270,2020:250,2021:240,2022:255,2023:261,2024:273}},
+  { id:'qatar',      name:'Qatar Airways',  flag:'🇶🇦', color:'#9d4edd',
+    d:{2005:30,2006:38,2007:46,2008:58,2009:76,2010:89,2011:107,2012:120,2013:131,2014:145,2015:164,2016:183,2017:200,2018:218,2019:235,2020:210,2021:218,2022:230,2023:245,2024:260}},
+  { id:'indigo',     name:'IndiGo',         flag:'🇮🇳', color:'#4361ee',
+    d:{2005:0,2006:0,2007:6,2008:16,2009:22,2010:30,2011:40,2012:58,2013:78,2014:100,2015:131,2016:155,2017:175,2018:213,2019:262,2020:237,2021:265,2022:290,2023:370,2024:430}},
+];
+
+const YEARS  = [2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+const TOP_N  = 10;
+const BAR_H  = 38;
+const GAP    = 8;
+const STRIDE = BAR_H + GAP;
+
+// ─── BUILD DOM (once per airline) ────────────────────────────────────────────
+const chartWrap = document.getElementById('chartWrap');
+const els = {};                  // id → { row, fill, val, rankEl }
+const displayedValues = {};      // id → currently shown number (for counter start)
+const rafHandles = {};           // id → rAF handle for counter animation
+
+AIRLINES.forEach(a => {
+  displayedValues[a.id] = 0;
+
+  const row = document.createElement('div');
+  row.className = 'bar-row';
+  row.style.top     = '560px';
+  row.style.opacity = '0';
+
+  const rankEl = document.createElement('div');
+  rankEl.className = 'rank-num';
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'airline-name';
+  nameEl.innerHTML = `<span style="margin-right:4px">${a.flag}</span>${a.name}`;
+
+  const track = document.createElement('div');
+  track.className = 'bar-track';
+
+  const fill = document.createElement('div');
+  fill.className = 'bar-fill';
+  fill.style.background = a.color;
+  fill.style.width = '0%';
+
+  const val = document.createElement('span');
+  val.className = 'val-label';
+  val.textContent = '';
+
+  fill.appendChild(val);
+  track.appendChild(fill);
+  row.appendChild(rankEl);
+  row.appendChild(nameEl);
+  row.appendChild(track);
+  chartWrap.appendChild(row);
+
+  els[a.id] = { row, fill, val, rankEl };
+});
+
+// ─── COUNTER ANIMATION ───────────────────────────────────────────────────────
+function animateCounter(id, fromVal, toVal, durationMs) {
+  if (rafHandles[id]) cancelAnimationFrame(rafHandles[id]);
+  if (fromVal === toVal) {
+    els[id].val.textContent = toVal > 0 ? toVal.toLocaleString() : '';
+    displayedValues[id] = toVal;
+    return;
+  }
+  const startTime = performance.now();
+  function tick(now) {
+    const t      = Math.min((now - startTime) / durationMs, 1);
+    const eased  = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    const value  = Math.round(fromVal + (toVal - fromVal) * eased);
+    els[id].val.textContent = value > 0 ? value.toLocaleString() : '';
+    displayedValues[id] = value;
+    if (t < 1) {
+      rafHandles[id] = requestAnimationFrame(tick);
+    }
+  }
+  rafHandles[id] = requestAnimationFrame(tick);
+}
+
+// ─── RENDER YEAR ─────────────────────────────────────────────────────────────
+function getDelay() {
+  return parseInt(document.getElementById('speedSelect').value, 10);
+}
+
+function renderYear(year) {
+  document.getElementById('yearBg').textContent = year;
+  document.getElementById('yearSlider').value = YEARS.indexOf(year);
+
+  const ranked = AIRLINES
+    .map(a => ({ id: a.id, value: a.d[year] || 0 }))
+    .sort((a, b) => b.value - a.value);
+
+  const maxVal   = ranked[0]?.value || 1;
+  const topIds   = ranked.slice(0, TOP_N).map(r => r.id);
+  const delay    = getDelay();
+  // Use 88% of the step delay for the transition so animation completes before next frame fires
+  const transDur = Math.round(delay * 0.88);
+  const transStr = `${transDur}ms cubic-bezier(.4,0,.2,1)`;
+
+  ranked.forEach(item => {
+    const el      = els[item.id];
+    const visRank = topIds.indexOf(item.id);
+    const inTop   = visRank >= 0;
+
+    // Set CSS transition duration to match playback speed
+    el.row.style.transition  = `top ${transStr}, opacity 500ms ease`;
+    el.fill.style.transition = `width ${transStr}`;
+
+    // Position & visibility
+    el.row.style.top     = inTop ? `${10 + visRank * STRIDE}px` : '560px';
+    el.row.style.opacity = inTop ? '1' : '0';
+
+    // Bar width
+    el.fill.style.width = inTop ? `${(item.value / maxVal) * 100}%` : '0%';
+
+    // Rank label
+    el.rankEl.textContent = inTop ? String(visRank + 1) : '';
+
+    // Animate number counter from last displayed value → new value
+    animateCounter(item.id, displayedValues[item.id], item.value, transDur);
+  });
+}
+
+// ─── PLAYBACK ────────────────────────────────────────────────────────────────
+let currentIdx = 0;
+let playing    = false;
+let stepTimer  = null;
+
+function playStep() {
+  renderYear(YEARS[currentIdx]);
+  if (currentIdx < YEARS.length - 1) {
+    currentIdx++;
+    stepTimer = setTimeout(playStep, getDelay());
+  } else {
+    playing = false;
+    document.getElementById('playBtn').textContent = '▶ Play';
+  }
+}
+
+document.getElementById('playBtn').addEventListener('click', () => {
+  if (playing) {
+    clearTimeout(stepTimer);
+    // Also cancel all running counters so numbers freeze at current position
+    Object.keys(rafHandles).forEach(id => cancelAnimationFrame(rafHandles[id]));
+    playing = false;
+    document.getElementById('playBtn').textContent = '▶ Play';
+  } else {
+    if (currentIdx >= YEARS.length - 1) currentIdx = 0;
+    playing = true;
+    document.getElementById('playBtn').textContent = '⏸ Pause';
+    playStep();
+  }
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  clearTimeout(stepTimer);
+  Object.keys(rafHandles).forEach(id => cancelAnimationFrame(rafHandles[id]));
+  // Reset displayed values so counters start from 0
+  AIRLINES.forEach(a => { displayedValues[a.id] = 0; });
+  playing    = false;
+  currentIdx = 0;
+  document.getElementById('playBtn').textContent = '▶ Play';
+  renderYear(YEARS[0]);
+});
+
+document.getElementById('yearSlider').addEventListener('input', e => {
+  clearTimeout(stepTimer);
+  Object.keys(rafHandles).forEach(id => cancelAnimationFrame(rafHandles[id]));
+  playing    = false;
+  currentIdx = parseInt(e.target.value, 10);
+  document.getElementById('playBtn').textContent = '▶ Play';
+  renderYear(YEARS[currentIdx]);
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+renderYear(YEARS[0]);
+</script>
+</body>
+</html>
